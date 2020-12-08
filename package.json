@@ -1,0 +1,48 @@
+{
+  "name": "@ldss95/helpers",
+  "version": "0.0.1",
+  "description": "Multiples funciones para problemas comunes como validacion de cedula dominicana, formatear strings telefonicos o moneda, generar pdf a partid de html. Etc...",
+  "main": "dist/index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/ldss95/helpers.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
+  "keywords": [
+    "helpers",
+    "formatter",
+    "phone",
+    "currency",
+    "format",
+    "dui",
+    "dominican",
+    "dominicana",
+    "cedula",
+    "validar",
+    "pdf",
+    "html",
+    "handlebars",
+    "email"
+  ],
+  "author": "Luis David S.",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ldss95/helpers/issues"
+  },
+  "homepage": "https://github.com/ldss95/helpers#readme",
+  "devDependencies": {
+    "@types/html-pdf": "^2.2.0",
+    "@types/node": "^14.14.10",
+    "typescript": "^4.1.2"
+  },
+  "dependencies": {
+    "handlebars": "^4.7.6",
+    "html-pdf": "^2.2.0"
+  }
+}

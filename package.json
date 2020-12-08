@@ -11,9 +11,6 @@
     "type": "git",
     "url": "git+ssh://git@github.com/ldss95/helpers.git"
   },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
-  },
   "keywords": [
     "helpers",
     "formatter",

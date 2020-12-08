@@ -4,6 +4,7 @@
     "lib": ["ES2017", "ES7", "ES6", "DOM"],
     "strict": true,
     "outDir": "./dist",
+    "rootDir": "./src",
     "esModuleInterop": true,
     "skipLibCheck": true
   },

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Multiples funciones para problemas comunes como validacion de cedula dominicana, formatear strings telefonicos o moneda, generar pdf a partid de html. Etc...",
   "main": "dist/index.js",
-  "types": "index.d.ts",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc"
   },

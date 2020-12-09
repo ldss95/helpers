@@ -77,39 +77,33 @@ const format = {
 	 * 
 	 * @returns `string` RNC con formato `130-80003-5`
 	 */
-	rnc: (rnc: string) => (rnc)
-		? `${rnc.substr(0, 3)}-${rnc.substr(3, 5)}-${rnc.substr(8, 1)}`
-		: 'N/A',
-	
+	rnc: (rnc: string) => customFormat(rnc, '000-00000-0'),
+
 	/**
 	 * Cedula de identidad y electoral dominicana
-	 * @param dui `string` *sin guiones*
+	 * @param dui numero de cedula *sin guiones*
 	 * 
 	 * @example
  	 * 		format.dui('10225088357');
 	 * 
 	 * @returns `string` Cedula con formato `102-2508835-7`
 	 */
-	dui: (dui: string) => (dui)
-		? `${dui.substr(0, 3)}-${dui.substr(3, 7)}-${dui.substr(10, 1)}`
-		: 'N/A',
+	dui: (dui: string) => customFormat(dui, '000-0000000-0'),
 	
 	/**
 	 * Numero de telefono dominicano
-	 * @param phone `string` *sin guiones*
+	 * @param phone numero telefonico *sin guiones ni espacios ni parentesis*
 	 * 
 	 * @example
  	 * 		format.phone('8093458812');
 	 * 
 	 * @returns `string` Numero Telefonico con formato `(809) 345-8812`
 	 */
-	phone: (phone: string) => (phone)
-		? `(${phone.substr(0, 3)}) ${phone.substr(3, 3)}-${phone.substr(6, 4)}`
-		: 'N/A',
+	phone: (phone: string) => customFormat(phone, '(000) 000-0000'),
 	
 	/**
 	 * Formato Moneda
-	 * @param cash `number` Monto
+	 * @param cash Monto
 	 * @param decimals `0 | 1 | 2` Cantidad de decimales, Por defecto 0
 	 * 
 	 * @example
@@ -117,9 +111,42 @@ const format = {
  	 * 		format.cash(4623, 1); -> '4,623.0'
  	 * 		format.cash(4623);    -> '4,623'
 	 *
-	 * @returns `string` Monto con format de moneda `9,000.00`
+	 * @returns Monto con format de moneda `9,000.00`
 	 */
-	cash: (amount: number, decimals: 0 | 1 | 2 = 0) => Intl.NumberFormat('es-DO', { minimumFractionDigits: decimals }).format(amount)
+	cash: (amount: number, decimals: 0 | 1 | 2 = 0) => Intl.NumberFormat('es-DO', { minimumFractionDigits: decimals }).format(amount),
+
+	/**
+	 * Formatea cadenas de texto segun ejemplo introducido
+	 * @param input texto sin formato
+	 * @param example ejemplo de texto formateado
+	 * 
+	 * @example
+	 * 		format.custom('99511469110', '0000-0000-00-0');
+	 */
+	custom: customFormat
+}
+
+function customFormat(input: string, example: string): string {
+	/**
+	 * Validamos que la longitud del ejemplo (tras remover los caracaters especiales)
+	 * sea la misma que la del input
+	 */
+	if (input.length != example.replace(/[^0-0A-Za-z]/g, '').length) {
+		return 'Entrada Invalida'
+	}
+
+	const inputArr = input.split('')
+
+	//Expresion regular para encontrar caracteres eseciales
+	const isSpecial = new RegExp(/[^0-9A-Za-z]/)
+
+	//Obtenemos los caracteres especiales y sus posiciones
+	example.split('').forEach((char: string, index: number) => {
+		if (isSpecial.test(char))
+			inputArr.splice(index, 0, char)
+	})
+
+	return inputArr.join('')
 }
 
 /**

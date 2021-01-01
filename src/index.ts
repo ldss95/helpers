@@ -201,4 +201,4 @@ const pdf = {
 	}
 }
 
-export { duiIsValid, format, pdf };
+export { duiIsValid, format, pdf, handlebars };

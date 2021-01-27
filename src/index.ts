@@ -178,6 +178,30 @@ const pdf = {
 	},
 
 	/**
+	 * Genera pdf y lo devuelve en formato buffer
+	 * @return `fs.ReadStream`
+	 * @param templatePath ruta de la platilla handlebars
+	 * @param context parametros para la plantilla handlebars
+	 * @param options opciones de configuracion para el documento pdf {@link https://www.npmjs.com/package/html-pdf#options Ver Documentacion}.
+	 */
+	toBuffer: (templatePath: string, context: object, options?: CreateOptions) => {
+		const templateFile = fs.readFileSync(templatePath, 'utf8')
+		const html = handlebars.compile(templateFile)(context)
+
+		return new Promise<Buffer>((resolve, reject) => {
+			htmlPdf
+				.create(html, options)
+				.toBuffer((error, buffer) => {
+					if (error) {
+						return reject(error)
+					}
+
+					resolve(buffer)
+				})
+		})
+	},
+
+	/**
 	 * Genera pdf y lo guarda en la ruta especificada, devuelve la informacion del archivo generado
 	 * @return `FileInfo`
 	 * @param {PdfToFileParams} params objeto con los parametros para generar el pdf

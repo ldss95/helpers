@@ -1,6 +1,6 @@
 {
   "name": "@ldss95/helpers",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "Multiples funciones para problemas comunes como validacion de cedula dominicana, formatear strings telefonicos o moneda, generar pdf a partid de html. Etc...",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -40,6 +40,6 @@
   "dependencies": {
     "@types/html-pdf": "^2.2.0",
     "handlebars": "^4.7.6",
-    "html-pdf": "^2.2.0"
+    "puppeteer": "^19.7.5"
   }
 }

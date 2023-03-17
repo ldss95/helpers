@@ -1,11 +1,11 @@
-import fs, { ReadStream } from 'fs'
-import htmlPdf, { CreateOptions, FileInfo } from 'html-pdf'
+import fs from 'fs'
+import puppeteer, { PDFOptions } from 'puppeteer';
 import handlebars from 'handlebars'
 
 interface PdfToFileParams {
 	templatePath: string;
 	context: object;
-	options?: CreateOptions;
+	options?: PDFOptions;
 	filename: string;
 	outDir: string;
 }
@@ -77,7 +77,9 @@ const format = {
 	 * 
 	 * @returns `string` RNC con formato `130-80003-5`
 	 */
-	rnc: (rnc: string) => customFormat(rnc, '000-00000-0'),
+	rnc: function (rnc: string): string {
+		return this.custom(rnc, '000-00000-0')
+	},
 
 	/**
 	 * Cedula de identidad y electoral dominicana
@@ -88,7 +90,9 @@ const format = {
 	 * 
 	 * @returns `string` Cedula con formato `102-2508835-7`
 	 */
-	dui: (dui: string) => customFormat(dui, '000-0000000-0'),
+	dui: function (dui: string): string {
+		return this.custom(dui, '000-0000000-0')
+	},
 	
 	/**
 	 * Numero de telefono dominicano
@@ -99,7 +103,9 @@ const format = {
 	 * 
 	 * @returns `string` Numero Telefonico con formato `(809) 345-8812`
 	 */
-	phone: (phone: string) => customFormat(phone, '(000) 000-0000'),
+	phone: function (phone: string): string {
+		return this.custom(phone, '(000) 000-0000')
+	},
 	
 	/**
 	 * Formato Moneda
@@ -113,7 +119,9 @@ const format = {
 	 *
 	 * @returns Monto con format de moneda `9,000.00`
 	 */
-	cash: (amount: number, decimals: 0 | 1 | 2 = 0) => Intl.NumberFormat('es-DO', { minimumFractionDigits: decimals }).format(amount),
+	cash: function (amount: number, decimals: 0 | 1 | 2 = 0): string {
+		return Intl.NumberFormat('es-DO', { minimumFractionDigits: decimals }).format(amount)
+	},
 
 	/**
 	 * Formatea cadenas de texto segun ejemplo introducido
@@ -123,32 +131,31 @@ const format = {
 	 * @example
 	 * 		format.custom('99511469110', '0000-0000-00-0');
 	 */
-	custom: customFormat
-}
-
-function customFormat(input: string, example: string): string {
-	/**
-	 * Validamos que la longitud del ejemplo (tras remover los caracaters especiales)
-	 * sea la misma que la del input
-	 */
-	if (input.length != example.replace(/[^0-0A-Za-z]/g, '').length) {
-		return 'Entrada Invalida'
+	custom: function(input: string, example: string): string {
+		/**
+		 * Validamos que la longitud del ejemplo (tras remover los caracaters especiales)
+		 * sea la misma que la del input
+		 */
+		if (input.length != example.replace(/[^0-0A-Za-z]/g, '').length) {
+			return 'Entrada Invalida'
+		}
+	
+		const inputArr = input.split('')
+	
+		//Expresion regular para encontrar caracteres eseciales
+		const isSpecial = new RegExp(/[^0-9A-Za-z]/)
+	
+		//Obtenemos los caracteres especiales y sus posiciones
+		example.split('').forEach((char: string, index: number) => {
+			if (isSpecial.test(char))
+				inputArr.splice(index, 0, char)
+		})
+	
+		return inputArr.join('')
 	}
-
-	const inputArr = input.split('')
-
-	//Expresion regular para encontrar caracteres eseciales
-	const isSpecial = new RegExp(/[^0-9A-Za-z]/)
-
-	//Obtenemos los caracteres especiales y sus posiciones
-	example.split('').forEach((char: string, index: number) => {
-		if (isSpecial.test(char))
-			inputArr.splice(index, 0, char)
-	})
-
-	return inputArr.join('')
 }
 
+const phantomPath = '../node_modules/phantomjs/bin/phantomjs' 
 /**
  * Generador de pdf asincrono, tomando como entrada una plantilla handlebars y los paramstros para la misma
  */
@@ -160,21 +167,23 @@ const pdf = {
 	 * @param context parametros para la plantilla handlebars
 	 * @param options opciones de configuracion para el documento pdf {@link https://www.npmjs.com/package/html-pdf#options Ver Documentacion}.
 	 */
-	toStream: (templatePath: string, context: object, options?: CreateOptions) => {
-		const templateFile = fs.readFileSync(templatePath, 'utf8')
-		const html = handlebars.compile(templateFile)(context)
-
-		return new Promise<ReadStream>((resolve, reject) => {
-			htmlPdf
-				.create(html, options)
-				.toStream((error, stream) => {
-					if (error) {
-						return reject(error)
-					}
-
-					resolve(stream)
-				})
-		})
+	toStream: async (templatePath: string, context: object, options?: PDFOptions) => {
+		try {
+			const template = fs.readFileSync(templatePath, 'utf8');
+			const html = handlebars.compile(template)(context);
+			const browser = await puppeteer.launch();
+			const page = await browser.newPage();
+			await page.setContent(html);
+			const pdfBuffer = await page.pdf({
+				format: 'A4',
+				printBackground: true,
+				...options
+			});
+			await browser.close();
+			return fs.createReadStream('', { start: 0, end: pdfBuffer.length - 1 });
+		} catch (error) {
+			throw error;
+		}
 	},
 
 	/**
@@ -184,21 +193,21 @@ const pdf = {
 	 * @param context parametros para la plantilla handlebars
 	 * @param options opciones de configuracion para el documento pdf {@link https://www.npmjs.com/package/html-pdf#options Ver Documentacion}.
 	 */
-	toBuffer: (templatePath: string, context: object, options?: CreateOptions) => {
-		const templateFile = fs.readFileSync(templatePath, 'utf8')
-		const html = handlebars.compile(templateFile)(context)
-
-		return new Promise<Buffer>((resolve, reject) => {
-			htmlPdf
-				.create(html, options)
-				.toBuffer((error, buffer) => {
-					if (error) {
-						return reject(error)
-					}
-
-					resolve(buffer)
-				})
-		})
+	toBuffer: async (templatePath: string, context: object, options?: PDFOptions) => {
+		try {
+			const template = fs.readFileSync(templatePath, 'utf8');
+			const html = handlebars.compile(template)(context);
+			const browser = await puppeteer.launch();
+			const page = await browser.newPage();
+			await page.setContent(html);
+			return await page.pdf({
+				format: 'A4',
+				printBackground: true,
+				...options
+			});
+		} catch (error) {
+			throw error;
+		}
 	},
 
 	/**
@@ -207,21 +216,23 @@ const pdf = {
 	 * @param {PdfToFileParams} params objeto con los parametros para generar el pdf
 	 * @param options opciones de configuracion para el documento pdf {@link https://www.npmjs.com/package/html-pdf#options Ver Documentacion}.
 	 */
-	toFile: (params: PdfToFileParams) => {
-		const templateFile = fs.readFileSync(params.templatePath, 'utf8')
-		const html = handlebars.compile(templateFile)(params.context)
-
-		return new Promise<FileInfo>((resolve, reject) => {
-			htmlPdf
-				.create(html, params.options)
-				.toFile(params.outDir + params.filename, (error, info) => {
-					if (error) {
-						return reject(error)
-					}
-
-					resolve(info)
-				})
-		})
+	toFile: async (params: PdfToFileParams) => {
+		try {
+			const template = fs.readFileSync(params.templatePath, 'utf8');
+			const html = handlebars.compile(template)(params.context);
+			const browser = await puppeteer.launch();
+			const page = await browser.newPage();
+			await page.setContent(html);
+			const buffer = await page.pdf({
+				format: 'A4',
+				printBackground: true,
+				...params.options
+			});
+			await browser.close();
+			fs.writeFileSync(params.outDir + params.filename, buffer);
+		} catch (error) {
+			throw error;
+		}
 	}
 }
 

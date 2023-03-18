@@ -171,7 +171,9 @@ const pdf = {
 		try {
 			const template = fs.readFileSync(templatePath, 'utf8');
 			const html = handlebars.compile(template)(context);
-			const browser = await puppeteer.launch();
+			const browser = await puppeteer.launch({
+				args: ['--no-sandbox']
+			});
 			const page = await browser.newPage();
 			await page.setContent(html);
 			const pdfBuffer = await page.pdf({
@@ -197,7 +199,9 @@ const pdf = {
 		try {
 			const template = fs.readFileSync(templatePath, 'utf8');
 			const html = handlebars.compile(template)(context);
-			const browser = await puppeteer.launch();
+			const browser = await puppeteer.launch({
+				args: ['--no-sandbox']
+			});
 			const page = await browser.newPage();
 			await page.setContent(html);
 			return await page.pdf({
@@ -220,7 +224,9 @@ const pdf = {
 		try {
 			const template = fs.readFileSync(params.templatePath, 'utf8');
 			const html = handlebars.compile(template)(params.context);
-			const browser = await puppeteer.launch();
+			const browser = await puppeteer.launch({
+				args: ['--no-sandbox']
+			});
 			const page = await browser.newPage();
 			await page.setContent(html);
 			const buffer = await page.pdf({

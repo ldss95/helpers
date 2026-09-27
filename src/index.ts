@@ -155,7 +155,6 @@ const format = {
 	}
 }
 
-const phantomPath = '../node_modules/phantomjs/bin/phantomjs' 
 /**
  * Generador de pdf asincrono, tomando como entrada una plantilla handlebars y los paramstros para la misma
  */
@@ -172,7 +171,8 @@ const pdf = {
 			const template = fs.readFileSync(templatePath, 'utf8');
 			const html = handlebars.compile(template)(context);
 			const browser = await puppeteer.launch({
-				args: ['--no-sandbox']
+				headless: 'new',
+    			args: ['--no-sandbox', '--disable-setuid-sandbox']
 			});
 			const page = await browser.newPage();
 			await page.setContent(html);
@@ -200,7 +200,8 @@ const pdf = {
 			const template = fs.readFileSync(templatePath, 'utf8');
 			const html = handlebars.compile(template)(context);
 			const browser = await puppeteer.launch({
-				args: ['--no-sandbox']
+				headless: 'new',
+    			args: ['--no-sandbox', '--disable-setuid-sandbox']
 			});
 			const page = await browser.newPage();
 			await page.setContent(html);
@@ -225,7 +226,8 @@ const pdf = {
 			const template = fs.readFileSync(params.templatePath, 'utf8');
 			const html = handlebars.compile(template)(params.context);
 			const browser = await puppeteer.launch({
-				args: ['--no-sandbox']
+				headless: 'new',
+    			args: ['--no-sandbox', '--disable-setuid-sandbox']
 			});
 			const page = await browser.newPage();
 			await page.setContent(html);

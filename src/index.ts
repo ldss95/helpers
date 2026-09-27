@@ -1,5 +1,6 @@
 import fs from 'fs'
-import puppeteer, { PDFOptions } from 'puppeteer';
+import { Readable } from 'stream'
+import puppeteer, { Browser, PDFOptions } from 'puppeteer';
 import handlebars from 'handlebars'
 
 interface PdfToFileParams {
@@ -156,91 +157,77 @@ const format = {
 }
 
 /**
+ * Renderiza la plantilla handlebars con puppeteer y devuelve el pdf como buffer.
+ * El navegador se cierra SIEMPRE (también si falla la plantilla, `setContent` o
+ * `page.pdf`): cada instancia de Chromium son ~5 procesos, y dejarlas vivas
+ * termina en un OOM del proceso que las lanzó.
+ */
+async function renderPdf(templatePath: string, context: object, options?: PDFOptions): Promise<Buffer> {
+	const template = fs.readFileSync(templatePath, 'utf8');
+	const html = handlebars.compile(template)(context);
+	const browser = await puppeteer.launch({
+		headless: 'new',
+		args: ['--no-sandbox', '--disable-setuid-sandbox']
+	});
+
+	try {
+		const page = await browser.newPage();
+		await page.setContent(html);
+		return await page.pdf({
+			format: 'A4',
+			printBackground: true,
+			...options
+		});
+	} finally {
+		await closeBrowser(browser);
+	}
+}
+
+/**
+ * Cierra el navegador; si `close()` falla (Chromium colgado o ya caído), mata el
+ * proceso para no dejarlo huérfano.
+ */
+async function closeBrowser(browser: Browser): Promise<void> {
+	try {
+		await browser.close();
+	} catch {
+		browser.process()?.kill('SIGKILL');
+	}
+}
+
+/**
  * Generador de pdf asincrono, tomando como entrada una plantilla handlebars y los paramstros para la misma
  */
 const pdf = {
 	/**
 	 * Genera pdf y lo devuelve en formato stream
-	 * @return `fs.ReadStream`
+	 * @return `Readable`
 	 * @param templatePath ruta de la platilla handlebars
 	 * @param context parametros para la plantilla handlebars
-	 * @param options opciones de configuracion para el documento pdf {@link https://www.npmjs.com/package/html-pdf#options Ver Documentacion}.
+	 * @param options opciones de configuracion para el documento pdf {@link https://pptr.dev/api/puppeteer.pdfoptions Ver Documentacion}.
 	 */
-	toStream: async (templatePath: string, context: object, options?: PDFOptions) => {
-		try {
-			const template = fs.readFileSync(templatePath, 'utf8');
-			const html = handlebars.compile(template)(context);
-			const browser = await puppeteer.launch({
-				headless: 'new',
-    			args: ['--no-sandbox', '--disable-setuid-sandbox']
-			});
-			const page = await browser.newPage();
-			await page.setContent(html);
-			const pdfBuffer = await page.pdf({
-				format: 'A4',
-				printBackground: true,
-				...options
-			});
-			await browser.close();
-			return fs.createReadStream('', { start: 0, end: pdfBuffer.length - 1 });
-		} catch (error) {
-			throw error;
-		}
+	toStream: async (templatePath: string, context: object, options?: PDFOptions): Promise<Readable> => {
+		const buffer = await renderPdf(templatePath, context, options);
+		return Readable.from(buffer);
 	},
 
 	/**
 	 * Genera pdf y lo devuelve en formato buffer
-	 * @return `fs.ReadStream`
+	 * @return `Buffer`
 	 * @param templatePath ruta de la platilla handlebars
 	 * @param context parametros para la plantilla handlebars
-	 * @param options opciones de configuracion para el documento pdf {@link https://www.npmjs.com/package/html-pdf#options Ver Documentacion}.
+	 * @param options opciones de configuracion para el documento pdf {@link https://pptr.dev/api/puppeteer.pdfoptions Ver Documentacion}.
 	 */
-	toBuffer: async (templatePath: string, context: object, options?: PDFOptions) => {
-		try {
-			const template = fs.readFileSync(templatePath, 'utf8');
-			const html = handlebars.compile(template)(context);
-			const browser = await puppeteer.launch({
-				headless: 'new',
-    			args: ['--no-sandbox', '--disable-setuid-sandbox']
-			});
-			const page = await browser.newPage();
-			await page.setContent(html);
-			return await page.pdf({
-				format: 'A4',
-				printBackground: true,
-				...options
-			});
-		} catch (error) {
-			throw error;
-		}
-	},
+	toBuffer: (templatePath: string, context: object, options?: PDFOptions): Promise<Buffer> =>
+		renderPdf(templatePath, context, options),
 
 	/**
-	 * Genera pdf y lo guarda en la ruta especificada, devuelve la informacion del archivo generado
-	 * @return `FileInfo`
+	 * Genera pdf y lo guarda en la ruta especificada
 	 * @param {PdfToFileParams} params objeto con los parametros para generar el pdf
-	 * @param options opciones de configuracion para el documento pdf {@link https://www.npmjs.com/package/html-pdf#options Ver Documentacion}.
 	 */
-	toFile: async (params: PdfToFileParams) => {
-		try {
-			const template = fs.readFileSync(params.templatePath, 'utf8');
-			const html = handlebars.compile(template)(params.context);
-			const browser = await puppeteer.launch({
-				headless: 'new',
-    			args: ['--no-sandbox', '--disable-setuid-sandbox']
-			});
-			const page = await browser.newPage();
-			await page.setContent(html);
-			const buffer = await page.pdf({
-				format: 'A4',
-				printBackground: true,
-				...params.options
-			});
-			await browser.close();
-			fs.writeFileSync(params.outDir + params.filename, buffer);
-		} catch (error) {
-			throw error;
-		}
+	toFile: async (params: PdfToFileParams): Promise<void> => {
+		const buffer = await renderPdf(params.templatePath, params.context, params.options);
+		fs.writeFileSync(params.outDir + params.filename, buffer);
 	}
 }
 
